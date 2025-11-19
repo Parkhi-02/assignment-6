@@ -1,1 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Travel Packages — Assignment Solution</title>
+  <style>
+    :root{
+      --accent:#2b7cff;
+      --muted:#666;
+      --card:#fff;
+      --bg:#f4f7fb;
+      --danger:#d9534f;
+    }
+    body{
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin:0;
+      background:var(--bg);
+      color:#222;
+      line-height:1.45;
+    }
+    header{
+      position:sticky;
+      top:0;
+      background:white;
+      border-bottom:1px solid #eee;
+      z-index:50;
+    }
+    .nav{
+      display:flex;
+      gap:12px;
+      padding:12px 20px;
+      align-items:center;
+    }
+    .nav a{
+      text-decoration:none;color:var(--muted);
+      padding:6px 10px;border-radius:8px;
+    }
+    .nav a.active{
+      color:var(--accent);
+      background:rgba(43,124,255,0.08);
+      font-weight:600;
+    }
+    main{max-width:1000px;margin:28px auto;padding:0 18px;}
+    h1{margin:6px 0 14px;}
+    .cards{display:grid;grid-template-columns:1fr 360px;gap:20px;}
+    .card{
+      background:var(--card);
+      border-radius:10px;
+      box-shadow:0 6px 18px rgba(20,30,50,0.06);
+      padding:16px;
+    }
+    table{width:100%;border-collapse:collapse;margin-top:8px;}
+    th,td{padding:8px 10px;border-bottom:1px solid #f0f0f0;text-align:left;font-size:14px;}
+    th{font-weight:600;color:#444}
+    small.muted{color:var(--muted);font-size:13px;}
+    .form-row{display:flex;gap:8px;margin-bottom:10px;}
+    label{display:block;font-weight:600;font-size:13px;margin-bottom:6px;}
+    input[type="date"], select, input[type="text"], input[type="number"]{
+      width:100%;
+      padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:white;
+    }
+    .gallery{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .thumb{width:90px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent}
+    .thumb:hover{transform:scale(1.03)}
+    .modal{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.5);visibility:hidden;opacity:0;transition:opacity .15s;
+      pointer-events:none;
+    }
+    .modal.open{visibility:visible;opacity:1;pointer-events:auto;}
+    .modal .modal-card{background:white;padding:12px;border-radius:10px;max-width:90%;max-height:90%;box-shadow:0 8px 30px rgba(0,0,0,0.3)}
+    .modal img{max-width:100%;max-height:70vh;display:block;border-radius:6px}
+    footer{margin-top:40px;text-align:center;color:var(--muted);font-size:13px;padding:20px;}
+    .btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer}
+    .btn:disabled{opacity:.5;cursor:default}
+  </style>
+</head>
+<body>
+
+<header>
+  <nav class="nav" id="topnav">
+    <a href="#packages" class="nav-link">Packages</a>
+    <a href="#estimator" class="nav-link">Estimator</a>
+    <a href="#gallery" class="nav-link">Gallery</a>
+  </nav>
+</header>
+
+<main>
+  <h1>Travel Packages — Interactive Solution</h1>
+
+  <section id="packages" class="card">
+    <h2>Packages</h2>
+    <p class="muted">Rendered from JS array of package objects. Final Price computed in JS.</p>
+
+    <table id="packagesTable" aria-live="polite">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Destination</th>
+          <th>Duration (days)</th>
+          <th>Season</th>
+          <th>Base Price (per day)</th>
+          <th>Final Price (per booking)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <div class="cards" style="margin-top:20px">
+    <section id="estimator" class="card">
+      <h2>Booking Price Estimator</h2>
+      <form id="estimatorForm" onsubmit="event.preventDefault()">
+        <div class="form-row">
+          <div style="flex:1">
+            <label for="packageSelect">Package</label>
+            <select id="packageSelect" required></select>
+          </div>
+          <div style="width:140px">
+            <label for="guests">Guests</label>
+            <input id="guests" type="number" min="1" value="1" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div style="flex:1">
+            <label for="checkIn">Check-in</label>
+            <input id="checkIn" type="date" required />
+          </div>
+          <div style="flex:1">
+            <label for="checkOut">Check-out</label>
+            <input id="checkOut" type="date" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div style="flex:1">
+            <label for="promo">Promo Code</label>
+            <input id="promo" type="text" placeholder='e.g., EARLYBIRD' />
+            <small class="muted">Try code <strong>EARLYBIRD</strong> (-10%) or <strong>SUMMER20</strong> (-20%)</small>
+          </div>
+          <div style="width:150px">
+            <label>&nbsp;</label>
+            <button id="submitBtn" class="btn" type="submit">Book (disabled for demo)</button>
+          </div>
+        </div>
+
+        <hr />
+
+        <div>
+          <p><strong>Nights:</strong> <span id="nights">0</span></p>
+          <p><strong>Price breakdown:</strong></p>
+          <ul id="breakdown" class="muted"></ul>
+          <h3>Total: <span id="total">₹0.00</span></h3>
+        </div>
+      </form>
+    </section>
+
+    <aside class="card">
+      <h3>Quick rules</h3>
+      <ul class="muted">
+        <li>Season multiplier: low:0.9, mid:1.0, peak:1.25</li>
+        <li>Guest multiplier: +20% if guests > 2</li>
+        <li>Weekend surcharge: +10% per weekend night</li>
+        <li>Promo codes handled in switch/case</li>
+      </ul>
+      <hr />
+      <div>
+        <h4>Rendered package preview</h4>
+        <div id="selectedPreview" class="muted">Choose a package to preview details.</div>
+      </div>
+    </aside>
+  </div>
+
+  <section id="gallery" class="card" style="margin-top:20px">
+    <h2>Gallery</h2>
+    <p class="muted">Thumbnails use <code>data-large</code>. Click to open modal.</p>
+
+    <div class="gallery" id="galleryList">
+      <!-- thumbnails will be rendered here -->
+    </div>
+  </section>
+
+  <div id="imageModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card">
+      <button id="closeModal" class="btn" style="float:right;background:#eee;color:#333;margin-bottom:6px">Close</button>
+      <img id="modalImg" src="" alt="">
+      <p id="modalCaption" class="muted" style="margin-top:10px"></p>
+    </div>
+  </div>
+
+  <footer>Assignment solution — demo logic only. Prices in INR for illustration.</footer>
+</main>
+
+<script>
+/* ====== Data: packages array ====== */
+const packages = [
+  { id: 'P001', destination: 'Goa', durationDays: 4, basePrice: 3000, season: 'peak' },
+  { id: 'P002', destination: 'Manali', durationDays: 5, basePrice: 2500, season: 'mid' },
+  { id: 'P003', destination: 'Pondicherry', durationDays: 3, basePrice: 2200, season: 'low' },
+  { id: 'P004', destination: 'Rajasthan (Jaipur + Jodhpur)', durationDays: 6, basePrice: 3500, season: 'mid' },
+  { id: 'P005', destination: 'Kerala (Houseboat)', durationDays: 2, basePrice: 4500, season: 'peak' }
+];
+
+/* ====== Pricing helpers: multipliers and logic (operators & control flow) ====== */
+function seasonMultiplier(season) {
+  switch ((season || '').toLowerCase()) {
+    case 'low': return 0.9;
+    case 'mid': return 1.0;
+    case 'peak': return 1.25;
+    default: return 1.0;
+  }
+}
+
+function guestMultiplier(guests) {
+  // guests > 2 -> +20%, else no change
+  return guests > 2 ? 1.20 : 1.0;
+}
+
+function promoDiscountFactor(code) {
+  if (!code) return 1.0;
+  switch (code.trim().toUpperCase()) {
+    case 'EARLYBIRD': return 0.90; // -10%
+    case 'SUMMER20': return 0.80;  // -20%
+    default: return 1.0; // invalid or no promo
+  }
+}
+
+/* Count weekend nights (Sat/Sun) between two dates (checkIn inclusive, checkOut exclusive) */
+function countWeekendNights(checkIn, checkOut) {
+  let count = 0;
+  const cur = new Date(checkIn);
+  const end = new Date(checkOut);
+  for (let d = new Date(cur); d < end; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay(); // 0=Sun,6=Sat
+    if (day === 0 || day === 6) count++;
+  }
+  return count;
+}
+
+/* Compute final price for booking using rules:
+   final = basePrice * nights * seasonMult * guestMult * promoFactor + weekendSurcharge
+   weekend surcharge: extra 10% of base/day for each weekend night (applied as additive)
+*/
+function computeBookingPrice(pkg, nights, guests, weekendNights, promoCode) {
+  const seasonMult = seasonMultiplier(pkg.season);
+  const guestMult = guestMultiplier(guests);
+  const promoFactor = promoDiscountFactor(promoCode);
+
+  const baseTotal = pkg.basePrice * nights;
+  // weekend surcharge: 10% per weekend night of basePrice
+  const weekendSurcharge = 0.10 * pkg.basePrice * weekendNights;
+
+  // apply multipliers and promo
+  const subtotal = (baseTotal + weekendSurcharge) * seasonMult * guestMult;
+  const final = subtotal * promoFactor;
+
+  return {
+    baseTotal,
+    weekendSurcharge,
+    seasonMult,
+    guestMult,
+    promoFactor,
+    final
+  };
+}
+
+/* ====== Rendering packages table (loops + functions) ====== */
+function renderPackagesTable() {
+  const tbody = document.querySelector('#packagesTable tbody');
+  tbody.innerHTML = '';
+  for (const p of packages) {
+    // final price for the package booking = basePrice * durationDays * seasonMultiplier
+    const finalPrice = Math.round(p.basePrice * p.durationDays * seasonMultiplier(p.season));
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.id}</td>
+      <td>${p.destination}</td>
+      <td>${p.durationDays}</td>
+      <td>${p.season}</td>
+      <td>₹${p.basePrice.toLocaleString()}</td>
+      <td>₹${finalPrice.toLocaleString()}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+/* ====== Populate package select and gallery ====== */
+function initPackageSelect() {
+  const sel = document.getElementById('packageSelect');
+  sel.innerHTML = '';
+  for (const p of packages) {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.destination} — ${p.durationDays}d — ₹${p.basePrice}/day`;
+    opt.dataset.basePrice = p.basePrice;
+    opt.dataset.season = p.season;
+    sel.appendChild(opt);
+  }
+  updateSelectedPreview();
+}
+
+/* ====== Estimator form logic (form + control flow) ====== */
+const checkInEl = document.getElementById('checkIn');
+const checkOutEl = document.getElementById('checkOut');
+const guestsEl = document.getElementById('guests');
+const promoEl = document.getElementById('promo');
+const nightsEl = document.getElementById('nights');
+const breakdownEl = document.getElementById('breakdown');
+const totalEl = document.getElementById('total');
+const submitBtn = document.getElementById('submitBtn');
+const packageSelect = document.getElementById('packageSelect');
+const selectedPreview = document.getElementById('selectedPreview');
+
+function updateSelectedPreview(){
+  const pkg = packages.find(p => p.id === packageSelect.value) || packages[0];
+  selectedPreview.textContent = `${pkg.destination} — ${pkg.durationDays} days — Season: ${pkg.season} — Base ₹${pkg.basePrice}/day`;
+}
+
+/* Validate dates: checkIn < checkOut and presence */
+function validDates(checkInVal, checkOutVal) {
+  if (!checkInVal || !checkOutVal) return false;
+  const a = new Date(checkInVal);
+  const b = new Date(checkOutVal);
+  return a < b;
+}
+
+/* Compute and render live estimate */
+function computeAndRender() {
+  const selected = packages.find(p => p.id === packageSelect.value);
+  const ci = checkInEl.value;
+  const co = checkOutEl.value;
+  const guests = Math.max(1, Number(guestsEl.value) || 1);
+  const promo = promoEl.value.trim();
+
+  // disable submit if invalid
+  const valid = validDates(ci, co) && selected;
+  submitBtn.disabled = !valid;
+
+  if (!valid) {
+    nightsEl.textContent = '0';
+    breakdownEl.innerHTML = `<li>Enter valid check-in and check-out dates.</li>`;
+    totalEl.textContent = '₹0.00';
+    return;
+  }
+
+  // nights = difference in days
+  const inDate = new Date(ci);
+  const outDate = new Date(co);
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const nights = Math.round((outDate - inDate) / msPerDay);
+  nightsEl.textContent = nights;
+
+  const weekendNights = countWeekendNights(ci, co);
+  const result = computeBookingPrice(selected, nights, guests, weekendNights, promo);
+
+  breakdownEl.innerHTML = `
+    <li>Base total: ₹${result.baseTotal.toLocaleString()}</li>
+    <li>Weekend surcharge (${weekendNights} nights): ₹${Math.round(result.weekendSurcharge).toLocaleString()}</li>
+    <li>Season multiplier: ×${result.seasonMult}</li>
+    <li>Guest multiplier: ×${result.guestMult} (guests: ${guests})</li>
+    <li>Promo factor: ×${result.promoFactor}</li>
+  `;
+  totalEl.textContent = `₹${Math.round(result.final).toLocaleString()}`;
+}
+
+/* hook up events */
+packageSelect.addEventListener('change', () => { updateSelectedPreview(); computeAndRender(); });
+checkInEl.addEventListener('change', computeAndRender);
+checkOutEl.addEventListener('change', computeAndRender);
+guestsEl.addEventListener('input', computeAndRender);
+promoEl.addEventListener('input', computeAndRender);
+
+/* form submit demo behavior */
+document.getElementById('estimatorForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (submitBtn.disabled) return;
+  alert('Booking simulated. This demo does not submit to a server. Check console for details.');
+});
+
+/* ====== Gallery: data-large attributes + modal ====== */
+const galleryImages = [
+  {thumb: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=60', large: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80', title: 'Beach sunset — Goa'},
+  {thumb: 'https://images.unsplash.com/photo-1549880338-65ddcdfd017b?auto=format&fit=crop&w=400&q=60', large: 'https://images.unsplash.com/photo-1549880338-65ddcdfd017b?auto=format&fit=crop&w=1200&q=80', title: 'Snowy mountains — Manali'},
+  {thumb: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=400&q=60', large: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=1200&q=80', title: 'Pondicherry streets'},
+  {thumb: 'https://images.unsplash.com/photo-1505765054811-67f2b4ed9f7f?auto=format&fit=crop&w=400&q=60', large: 'https://images.unsplash.com/photo-1505765054811-67f2b4ed9f7f?auto=format&fit=crop&w=1200&q=80', title: 'Backwaters — Kerala'}
+];
+
+function renderGallery() {
+  const container = document.getElementById('galleryList');
+  container.innerHTML = '';
+  for (const img of galleryImages) {
+    const el = document.createElement('img');
+    el.src = img.thumb;
+    el.className = 'thumb';
+    el.alt = img.title;
+    el.setAttribute('data-large', img.large);
+    el.setAttribute('data-title', img.title);
+    el.addEventListener('click', onThumbClick);
+    container.appendChild(el);
+  }
+}
+
+const modal = document.getElementById('imageModal');
+const modalImg = document.getElementById('modalImg');
+const modalCaption = document.getElementById('modalCaption');
+document.getElementById('closeModal').addEventListener('click', () => closeModal());
+modal.addEventListener('click', (ev) => { if (ev.target === modal) closeModal(); });
+
+function onThumbClick(e) {
+  const src = e.currentTarget.dataset.large;
+  const title = e.currentTarget.dataset.title;
+  modalImg.src = src;
+  modalImg.alt = title;
+  modalCaption.textContent = title;
+  openModal();
+}
+function openModal(){ modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); }
+function closeModal(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); modalImg.src=''; }
+
+/* ====== Nav highlight + scroll behavior ====== */
+const navLinks = document.querySelectorAll('.nav-link');
+const sections = Array.from(navLinks).map(a => document.querySelector(a.getAttribute('href')));
+function onScroll() {
+  const y = window.scrollY + 100; // offset
+  let currentIndex = 0;
+  for (let i = 0; i < sections.length; i++) {
+    if (sections[i] && sections[i].offsetTop <= y) currentIndex = i;
+  }
+  navLinks.forEach((a, idx) => a.classList.toggle('active', idx === currentIndex));
+}
+window.addEventListener('scroll', onScroll);
+navLinks.forEach(a => {
+  a.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href')).scrollIntoView({behavior:'smooth', block:'start'});
+    navLinks.forEach(n => n.classList.remove('active'));
+    a.classList.add('active');
+  });
+});
+
+/* ====== Init everything ====== */
+renderPackagesTable();
+initPackageSelect();
+renderGallery();
+computeAndRender();
+onScroll();
+
+</script>
+</body>
+</html>
 
